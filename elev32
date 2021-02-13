@@ -1,0 +1,442 @@
+<html>
+  <head>
+    <style type="text/css">
+        #centralizar{position: absolute; top:10%; left:5%}
+        #centralizarTexPavimentos{position: absolute; top:50%; left:5%}
+        #centralizarTexCabine{position: absolute; top:70%; left:5%}
+        #centralizarelev{position: absolute; top:0%; left:55%}
+
+    </style> 
+
+
+    </head>
+
+ <div id="centralizar">
+ <button type="button" onclick="defeito = !defeito">Defeito</button>      
+ <button type="button" onclick="man_aut = !man_aut">ManAut</button>  
+ <button type="button" onclick="man_car_s = !man_car_s">sobe</button> </button>  
+ <button type="button" onclick="man_car_d = !man_car_d">desce</button>  
+ <button type="button" onclick="man_porta_a = !man_porta_a">abre porta</button> 
+ <button type="button" onclick="man_porta_f = !man_porta_f">fecha porta</button>     
+  </div>  
+  
+  
+<div id="centralizarTexCabine">
+<p>
+ PAINEL DA CABINE DO ELEVADOR
+</p>
+<p>
+<button type="button" onclick="chamada = chamada | 1">1 Andar</button>
+<button type="button" onclick="chamada = chamada | 2">2 Andar</button>
+<button type="button" onclick="chamada = chamada | 4">3 Andar</button>
+<button type="button" onclick="chamada = chamada | 8">4 Andar</button>
+<button type="button" onclick="chamada = chamada | 16">5 Andar</button>
+<button type="button" onclick="chamada = chamada | 32">6 Andar</button>
+</p>
+</div>  
+
+<div id="centralizarTexPavimentos">
+<p>
+ BOTOES DE SUBIDA E DESCIDA NOS PAVIMENTOS
+
+</p>
+
+<button type="button" onclick="chamada = chamada | 1">1 Andar </button>
+<button type="button" onclick="chamada = chamada | 2">2 Andar</button>
+<button type="button" onclick="chamada = chamada | 4">3 Andar</button>
+<button type="button" onclick="chamada = chamada | 8">4 Andar</button>
+<button type="button" onclick="chamada = chamada | 16">5 Andar</button>
+<button type="button" onclick="chamada = chamada | 32">6 Andar</button>
+</P>
+</div>
+<div id="centralizarelev">
+<p>
+<canvas id= "gameCanvas" width="500" height="600"></canvas>
+</p>
+</div>
+<script>
+var retorno       = false;
+var defeito       = false; 
+var man_aut       = true; 
+var man_car_s     = false;
+var man_car_d     = false;
+var man_porta_a   = false;
+var man_porta_f   = false;
+
+var canvas;
+var canvasContext;
+var velocidade  = 10;
+var SpeedCar    = 550;
+var tempo       = 0;
+var incremSpCar = 0;
+var SpeedDoor   = 50;
+var chamada     = 0;
+var chamada_s   = 0;
+var chamada_d   = 0;
+var step1       = 0;
+var cond_ini    = 0;
+var cond        = 0;
+var posicao     = 1;
+var mask_pos_d  = 0;
+var mask_pos_s  = 0;
+var pos_sup     = 0;
+var pos_inf     = 0;
+var aprox_d     = 0;
+var aprox_s     = 0;
+var  resul      = 0;
+var pavimento   = 0;
+var de          = 0;
+
+window.onload = function(){   
+   canvas = document.getElementById('gameCanvas');
+   canvasContext = canvas.getContext('2d');
+   setInterval(dawEverything,50);
+  
+}
+   //             funcao principal desenha tela 
+ function dawEverything() { 
+
+
+
+
+        //              posicao do elevador     
+            if (SpeedCar == 550) posicao = 1;
+            if (SpeedCar == 450) posicao = 2; 
+            if (SpeedCar == 350) posicao = 4; 
+            if (SpeedCar == 250) posicao = 8; 
+            if (SpeedCar == 150) posicao = 16; 
+            if (SpeedCar ==  50) posicao = 32;
+        //           posicao do elevador nivelado feito para evitar abertura porta fora de posicao    
+            if (SpeedCar == 550 || SpeedCar == 450 || SpeedCar == 350 || SpeedCar == 250 ||
+                SpeedCar == 150 || SpeedCar == 50) {pavimento = 1;}
+            else {pavimento = 0; }
+        //           mascaras para controlar atendimento as chamadas   
+            mask_pos_d  = posicao - 1; 
+            mask_pos_s  = ~((posicao - 1) + posicao);
+        //           condicao para trocar velocidade ao aproximar dos andares de paradas   
+            aprox_s     = posicao << 1;
+            aprox_d     = posicao >> 1;
+
+
+        // ******************************* condicao automatico *****************************************************************   
+        if (man_aut & !defeito) { 
+            switch (step1) {
+                case 0:   //  condicao inicial do elevador sem chamada geral
+
+                  if (chamada || chamada_d || chamada_s ) {chamada = chamada | chamada_d | chamada_s;
+                    cond_ini = 1;
+                    step1 = 2; 
+                    tempo = 0;
+                }
+                 
+                  else {
+                      if (posicao != 1) {
+                        tempo++; 
+                        if (tempo == 200 && posicao != 1 ) {
+                                retorno = true;
+                                chamada = 1;
+                                tempo = 0; 
+                            }    
+
+
+
+                      }
+                    step1 = 0;          
+
+                  }
+                 break;
+                case 2:  
+                    
+                        if (chamada == 0 && chamada_d == 0 && chamada_s == 0) { 
+                                                           // condicao de repouso sem chamadas
+                            step1 = 2;                  
+                        }
+                        else{                   
+                            
+                            if ((chamada | chamada_s | chamada_d) & posicao) {                             // chamada ocorre com elevador em posicao da cham 
+                                step1 = 30;
+
+                            }
+                            if   (((chamada | chamada_s) & mask_pos_s) && (cond == 0 || cond_ini == 1))        {
+                                 step1 = 10;
+                                 chamada = chamada | chamada_s;
+                                 cond_ini = 0;
+                                 de = 1;
+                                 }//cham ocorreu acima da posicao 
+                            else  {cond = 1; }                                           // seletiva na subida
+                            if    (((chamada | chamada_d) & mask_pos_d) && (cond == 1 || cond_ini == 1))       {
+                                step1 = 20;
+                                 chamada = chamada | chamada_d;
+                                 cond_ini = 0;
+                                  de = 2; } 
+                            else  {cond = 0; }
+                        }
+                    break;   
+                case 10:                                                          
+                            if ((chamada & posicao || chamada_s & posicao) && (pavimento == 1) ) {// elevador em condicao de subida                   
+                            
+                            step1 = 30;
+                            break;
+                            }    
+                            if (aprox_s & chamada) {SpeedCar--; }           // troca de velocidade para baixa proximo a parada
+                            else {SpeedCar -= 5; } 
+                    break;
+                case 20:
+                            if ((chamada & posicao || chamada_d & posicao) && (pavimento == 1)) {// elevador em condicao de descida                  
+                                
+                                step1 = 30;
+                                break;
+                            } 
+                            if (aprox_d & chamada) {SpeedCar++; }
+                            else { SpeedCar += 5;}
+                    break;                
+                case 30:	if (retorno) {
+                                chamada =   0;
+                                chamada_d = 0;
+                                chamada_s = 0;
+                                retorno = false;
+                                step1 = 50;
+                             }	
+                             else{				//     abrir porta  
+                            SpeedDoor--; 
+                            if (SpeedDoor == 5) {
+                            chamada   = (chamada & ~posicao);        // comando para zerar chamadas
+                            chamada_s = (chamada_s & ~posicao); 
+                            chamada_d = (chamada_d & ~posicao);  
+                            step1 = 40;
+                            }
+
+                         }
+                    break; 
+                case 40:                  // fecha porta
+                        SpeedDoor++;      
+                        if (SpeedDoor == 50) { 
+                            step1 = 50;
+                        }
+                    break;  
+                case 50: 
+                        if (chamada | chamada_d | chamada_s)  step1 =2;
+                        else step1 = 0;                     
+            }
+         }
+  
+
+
+
+        //******************** condicao de manual ***********************************************************************   
+        else{
+                    if(man_car_s) {
+                        SpeedCar --;
+                        if (SpeedCar < 50) {SpeedCar = 50; man_car_s = 0; }
+                    }
+                    if(man_car_d) {
+                        SpeedCar ++;
+                        if (SpeedCar > 550) {SpeedCar = 550; man_car_d = 0; } 
+                    }
+                    if(man_porta_a) {
+                        SpeedDoor --;
+                        if (SpeedDoor < 5) {SpeedDoor = 5; man_porta_a = 0; }
+                    }
+                    if(man_porta_f) {
+                        SpeedDoor ++;
+                        if (SpeedDoor > 50) {SpeedDoor = 50; man_porta_f = 0;}
+                    }
+        } 
+        
+        
+
+
+        canvasContext.fillStyle = 'black';
+        canvasContext.fillRect(130,0,canvas.width,canvas.height);
+
+       //*********************************  1 andar ******************************************
+        
+       if (chamada & 1){
+        canvasContext.fillStyle = 'green';       
+        canvasContext.fillRect(300,550,50,50); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(300,550,50,50); 
+        }
+
+        if (chamada_d & 1) {
+        canvasContext.fillStyle = 'blue';       
+        canvasContext.fillRect(360,575,25,25); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(360,575,25,25); 
+        }
+        if (chamada_s & 1) {
+        canvasContext.fillStyle = 'blue';       
+        canvasContext.fillRect(360,550,25,25); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(360,550,25,25); 
+        }
+
+       //*********************************  2 andar ******************************************
+         
+        if (chamada & 2) {
+        canvasContext.fillStyle = 'green';       
+        canvasContext.fillRect(300,450,50,50); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(300,450,50,50); 
+        }
+        if (chamada_d & 2) {
+        canvasContext.fillStyle = 'blue';       
+        canvasContext.fillRect(360,475,25,25); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(360,475,25,25); 
+        }
+        if (chamada_s & 2) {
+        canvasContext.fillStyle = 'blue';       
+        canvasContext.fillRect(360,450,25,25); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(360,450,25,25); 
+        }
+
+         //*********************************  3 andar ******************************************
+         
+         if (chamada & 4) {
+        canvasContext.fillStyle = 'green';       
+        canvasContext.fillRect(300,350,50,50); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(300,350,50,50); 
+        }
+        if (chamada_d & 4) {
+        canvasContext.fillStyle = 'blue';       
+        canvasContext.fillRect(360,375,25,25); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(360,375,25,25); 
+        }
+        if (chamada_s & 4) {
+        canvasContext.fillStyle = 'blue';       
+        canvasContext.fillRect(360,350,25,25); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(360,350,25,25); 
+        }
+
+         //*********************************  4 andar ******************************************
+         
+         if (chamada & 8) {
+        canvasContext.fillStyle = 'green';       
+        canvasContext.fillRect(300,250,50,50); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(300,250,50,50); 
+        }
+
+        if (chamada_d & 8) {
+        canvasContext.fillStyle = 'blue';       
+        canvasContext.fillRect(360,275,25,25); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(360,275,25,25); 
+        }
+        if (chamada_s & 8) {
+        canvasContext.fillStyle = 'blue';       
+        canvasContext.fillRect(360,250,25,25); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(360,250,25,25); 
+        }
+         //*********************************  5 andar ******************************************
+        
+         if (chamada & 16) {
+        canvasContext.fillStyle = 'green';       
+        canvasContext.fillRect(300,150,50,50); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(300,150,50,50); 
+        }
+
+        if (chamada_d & 16) {
+        canvasContext.fillStyle = 'blue';       
+        canvasContext.fillRect(360,175,25,25); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(360,175,25,25); 
+        }
+        if (chamada_s & 16) {
+        canvasContext.fillStyle = 'blue';       
+        canvasContext.fillRect(360,150,25,25); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(360,150,25,25); 
+        }
+         //*********************************  6 andar ******************************************
+         
+        if (chamada & 32) {
+        canvasContext.fillStyle = 'green';       
+        canvasContext.fillRect(300,50,50,50); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(300,50,50,50); 
+        }
+        
+        if (chamada_d & 32) {
+        canvasContext.fillStyle = 'blue';       
+        canvasContext.fillRect(360,75,25,25); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(360,75,25,25); 
+        }
+        if (chamada_s & 32) {
+        canvasContext.fillStyle = 'blue';       
+        canvasContext.fillRect(360,50,25,25); 
+        } 
+        else {
+        canvasContext.fillStyle = 'white';       
+        canvasContext.fillRect(360,50,25,25); 
+        }
+        
+        canvasContext.fillStyle = 'red';
+        canvasContext.fillRect(300,SpeedCar,SpeedDoor,50);
+        canvasContext.fillStyle = 'white';
+        /*  usado para debug
+        var binary_cham  = parseInt(chamada, 10 ).toString( 2 );  
+        var binary_mascD = parseInt(mask_pos_d, 10 ).toString( 2 );
+        
+        canvasContext.fillText('apros>>',180,250,250);
+        canvasContext.fillText(aprox_s,250,250,250);
+        
+        canvasContext.fillText('aprox<<',180,280,250);
+        canvasContext.fillText(aprox_d,250,280,250);*/ 
+        //                                           dir  baixo  tamanho                     
+        canvasContext.fillText('velocidade'          ,140  ,50    ,250);
+        if (man_aut) {canvasContext.fillText('AUTOM' ,230  ,50    ,250); }
+        else         {canvasContext.fillText('MANUAL',230  ,50    ,250);}
+
+        if (defeito) {canvasContext.fillText('DEFEITO',230  ,70    ,250); }
+        else         {canvasContext.fillText('NORMAL',230  ,70    ,250);}
+        canvasContext.fillText('Tempo retorno'                 ,160  ,100    ,250);
+        canvasContext.fillText(tempo                 ,230  ,100    ,250);
+       // canvasContext.fillText(mask_pos_s            ,230  ,110    ,250);
+
+
+ }
+</script>
+</html>
